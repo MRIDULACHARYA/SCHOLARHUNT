@@ -13,47 +13,84 @@
     <div id="result"></div>
   </div>
 
-  <script>
-    document.getElementById('searchBtn').addEventListener('click', async () => {
-      const id = document.getElementById('studentId').value.trim();
-      const resultDiv = document.getElementById('result');
-      resultDiv.innerHTML = '';
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
-      if (!id) {
-        resultDiv.textContent = 'Please enter a Student ID.';
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyD5QhqQ9sxhSCBQduuXroiGTfWwZ4mHtMA",
+  authDomain: "scholarhunt-87c39.firebaseapp.com",
+  projectId: "scholarhunt-87c39",
+  storageBucket: "scholarhunt-87c39.appspot.com",
+  messagingSenderId: "607853094193",
+  appId: "1:607853094193:web:a42222ee5cf96197703c10",
+  measurementId: "G-ZJPB5XYVSM"
+};
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // Search button click handler
+  document.getElementById('searchBtn').addEventListener('click', async () => {
+    const id = document.getElementById('studentId').value.trim();
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = '';
+
+    if (!id) {
+      resultDiv.textContent = 'Please enter a Student ID.';
+      return;
+    }
+
+    try {
+      // Query Firestore for documents with studentId == id
+      const querySnapshot = await db.collection('applications').where('studentId', '==', id).get();
+
+      if (querySnapshot.empty) {
+        resultDiv.textContent = 'No data found for this Student ID.';
         return;
       }
 
-      try {
-        const res = await fetch(`/api/eligible?id=${encodeURIComponent(id)}`);
-        if (!res.ok) {
-          const err = await res.json();
-          resultDiv.textContent = err.error || 'Error fetching data.';
-          return;
-        }
-        const data = await res.json();
+      querySnapshot.forEach(doc => {
+        const data = doc.data();
 
-        // Show student info
         const header = document.createElement('p');
-        header.textContent = `Hello, ${data.student.name} (Dept: ${data.student.department}, Income: ₹${data.student.income})`;
+        header.textContent = `Hello, ${data.name} (Caste: ${data.caste}, Disability: ${data.disability}, Gender: ${data.gender}, Marks: ${data.marks}%, Income: ₹${data.income})`;
         resultDiv.appendChild(header);
 
-        // Show scholarships
-        if (data.eligibleScholarships.length === 0) {
+        // Example scholarship eligibility conditions:
+        const eligibleScholarships = [];
+
+        if (data.marks >= 85 && data.income < 500000) {
+          eligibleScholarships.push({ code: 'SCH-01', name: 'Merit Scholarship' });
+        }
+  if (data.marks >= 85 && data.income < 500000) {
+  eligibleScholarships.push({ code: 'SCH-01', name: 'Merit Scholarship' });
+}
+if (data.disability && data.disability.toLowerCase() !== 'none') {
+  eligibleScholarships.push({ code: 'SCH-02', name: 'Disability Support Scholarship' });
+}
+
+
+
+        if (eligibleScholarships.length === 0) {
           resultDiv.appendChild(document.createTextNode('No scholarships available.'));
         } else {
           const ul = document.createElement('ul');
-          data.eligibleScholarships.forEach(sch => {
+          eligibleScholarships.forEach(sch => {
             const li = document.createElement('li');
             li.textContent = `${sch.code}: ${sch.name}`;
             ul.appendChild(li);
           });
           resultDiv.appendChild(ul);
         }
-      } catch (e) {
-        resultDiv.textContent = 'Network error: ' + e.message;
-      }
-    });
-  </script>
+      });
+
+    } catch (e) {
+      resultDiv.textContent = 'Error fetching data: ' + e.message;
+    }
+  });
+</script>
+
 </body>
 </html>
