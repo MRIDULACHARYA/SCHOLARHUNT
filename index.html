@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Scholarship Finder</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Find Your Scholarships</h1>
+    <input id="studentId" type="text" placeholder="Enter Student ID">
+    <button id="searchBtn">Search</button>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    document.getElementById('searchBtn').addEventListener('click', async () => {
+      const id = document.getElementById('studentId').value.trim();
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '';
+
+      if (!id) {
+        resultDiv.textContent = 'Please enter a Student ID.';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/eligible?id=${encodeURIComponent(id)}`);
+        if (!res.ok) {
+          const err = await res.json();
+          resultDiv.textContent = err.error || 'Error fetching data.';
+          return;
+        }
+        const data = await res.json();
+
+        // Show student info
+        const header = document.createElement('p');
+        header.textContent = `Hello, ${data.student.name} (Dept: ${data.student.department}, Income: ₹${data.student.income})`;
+        resultDiv.appendChild(header);
+
+        // Show scholarships
+        if (data.eligibleScholarships.length === 0) {
+          resultDiv.appendChild(document.createTextNode('No scholarships available.'));
+        } else {
+          const ul = document.createElement('ul');
+          data.eligibleScholarships.forEach(sch => {
+            const li = document.createElement('li');
+            li.textContent = `${sch.code}: ${sch.name}`;
+            ul.appendChild(li);
+          });
+          resultDiv.appendChild(ul);
+        }
+      } catch (e) {
+        resultDiv.textContent = 'Network error: ' + e.message;
+      }
+    });
+  </script>
+</body>
+</html>
